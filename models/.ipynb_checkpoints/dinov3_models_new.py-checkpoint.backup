@@ -1,0 +1,190 @@
+import os
+import torch
+import torch.nn as nn
+from torchvision.transforms import Normalize
+
+# HuggingFace模型映射
+HF_MODEL_MAPPINGS = {
+    "dinov3_vits16": "facebook/dinov3-vits16-pretrain-lvd1689m",
+    "dinov3_vits16plus": "facebook/dinov3-vits16plus-pretrain-lvd1689m",
+    "dinov3_vitb16": "facebook/dinov3-vitb16-pretrain-lvd1689m",
+    "dinov3_vitl16": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "dinov3_vith16plus": "facebook/dinov3-vith16plus-pretrain-lvd1689m",
+    "dinov3_vit7b16": "facebook/dinov3-vit7b16-pretrain-lvd1689m",
+    "dinov3_convnext_tiny": "facebook/dinov3-convnext-tiny-pretrain-lvd1689m",
+    "dinov3_convnext_small": "facebook/dinov3-convnext-small-pretrain-lvd1689m",
+    "dinov3_convnext_base": "facebook/dinov3-convnext-base-pretrain-lvd1689m",
+    "dinov3_convnext_large": "facebook/dinov3-convnext-large-pretrain-lvd1689m",
+}
+
+# 模型特征维度映射
+CHANNELS = {
+    "dinov3_vits16": 384,
+    "dinov3_vits16plus": 384,     # ViT-S+ (same hidden size as ViT-S/16)
+    "dinov3_vitb16": 768,
+    "dinov3_vitl16": 1024,
+    "dinov3_vith16plus": 1280,    # ViT-H+ (assumed hidden size for ViT-H)
+    "dinov3_vit7b16": 4096,       # ViT-7B (assumed hidden size or nearest)
+    "dinov3_convnext_tiny": 768,
+    "dinov3_convnext_small": 768,
+    "dinov3_convnext_base": 1024,
+    "dinov3_convnext_large": 1536,
+}
+
+
+class DINOv3Model(nn.Module):
+    def __init__(
+        self,
+        name,
+        num_classes=1,
+        model_dir=None,
+        huggingface_path=None,
+    ):
+        """
+        初始化DINOv3模型
+        
+        Args:
+            name: 模型名称，如 "dinov3_vits16"
+            num_classes: 分类头的类别数
+            model_dir: 本地HuggingFace模型文件夹路径
+            huggingface_path: HuggingFace模型路径或本地路径
+        """
+        super(DINOv3Model, self).__init__()
+        
+        # 验证模型名称
+        if name not in CHANNELS:
+            raise ValueError(
+                f"Unknown DINOv3 model: {name}. Available models: {list(CHANNELS.keys())}"
+            )
+        
+        self.model_type = name
+        
+        # 确定模型路径
+        if model_dir:
+            model_path = model_dir
+        elif huggingface_path:
+            model_path = huggingface_path
+        else:
+            # 使用默认映射
+            if name in HF_MODEL_MAPPINGS:
+                model_path = HF_MODEL_MAPPINGS[name]
+            else:
+                raise ValueError(f"No default HuggingFace mapping for model: {name}")
+        
+        # 加载模型
+        print(f"Loading DINOv3 from: {model_path}")
+        self._load_from_huggingface(model_path)
+        
+        # 初始化分类头
+        channels = CHANNELS[name]
+        self.fc = nn.Linear(channels, num_classes)
+        
+        # 图像标准化
+        self.mean = [0.485, 0.456, 0.406]
+        self.std = [0.229, 0.224, 0.225]
+        self.normalize = Normalize(mean=self.mean, std=self.std)
+
+    def _load_from_huggingface(self, model_path):
+        """从HuggingFace加载模型（支持离线模式）"""
+        try:
+            from transformers import AutoModel, AutoImageProcessor
+            
+            # 检查是否为本地路径
+            is_local = os.path.exists(model_path)
+            
+            if is_local:
+                print(f"Loading from local HuggingFace directory: {model_path}")
+                # 离线加载
+                self.model = AutoModel.from_pretrained(
+                    model_path,
+                    local_files_only=True,
+                    trust_remote_code=True
+                )
+                
+                self.processor = AutoImageProcessor.from_pretrained(
+                    model_path,
+                    local_files_only=True
+                )
+            else:
+                print(f"Loading from HuggingFace Hub: {model_path}")
+                # 在线加载（如果需要的话）
+                self.model = AutoModel.from_pretrained(
+                    model_path,
+                    trust_remote_code=True
+                )
+                
+                self.processor = AutoImageProcessor.from_pretrained(model_path)
+            
+            # 设置为评估模式
+            self.model.eval()
+            print("✅ Model loaded successfully!")
+            
+        except ImportError:
+            raise ImportError(
+                "transformers package is not installed. Please install it with: pip install transformers"
+            )
+        except Exception as e:
+            raise ValueError(f"Error loading model from HuggingFace: {e}")
+
+    def forward(self, x, return_feature=False, return_tokens=False):
+        """
+        前向传播
+        
+        Args:
+            x: 输入图像张量 (B, C, H, W)
+            return_feature: 是否返回特征向量
+            return_tokens: 是否返回所有token特征（暂未实现，保持接口兼容性）
+            
+        Returns:
+            如果return_feature=False: 分类输出 (B, num_classes)
+            如果return_feature=True: (特征向量, 分类输出)
+        """
+        # 使用HuggingFace模型提取特征
+        with torch.no_grad():
+            outputs = self.model(pixel_values=x)
+        
+        # 获取CLS token的特征
+        if hasattr(outputs, 'last_hidden_state'):
+            # 对于大多数Vision Transformer，CLS token在第0位
+            features = outputs.last_hidden_state[:, 0]  # (B, hidden_dim)
+        elif hasattr(outputs, 'pooler_output'):
+            features = outputs.pooler_output
+        else:
+            raise RuntimeError("Unable to extract features from model output")
+        
+        # 通过分类头
+        class_output = self.fc(features)
+        
+        if return_feature:
+            return features, class_output
+        else:
+            return class_output
+
+    def get_preprocessing_transforms(self):
+        """获取预处理变换"""
+        return self.normalize
+    
+    def preprocess_image(self, image):
+        """
+        预处理单张图像
+        
+        Args:
+            image: PIL Image 或 numpy array
+            
+        Returns:
+            预处理后的tensor
+        """
+        if hasattr(self, 'processor'):
+            # 使用HuggingFace的processor
+            inputs = self.processor(images=image, return_tensors="pt")
+            return inputs['pixel_values']
+        else:
+            # 回退到手动预处理
+            from torchvision import transforms
+            transform = transforms.Compose([
+                transforms.Resize(224),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                self.normalize
+            ])
+            return transform(image).unsqueeze(0)

@@ -1,0 +1,216 @@
+import os
+import torch
+import torch.nn as nn
+from torchvision.transforms import Normalize
+
+try:
+    # Try to import official DINOv3 model definitions if available
+    # (Assuming similar structure as DINOv2's official package)
+    from dinov3.models import vision_transformer as dinov3_vit
+    from dinov3.models import convnext as dinov3_conv
+    # Specific model builder functions (if defined in the official code)
+    vit_small = getattr(dinov3_vit, "vit_small", None)
+    vit_base = getattr(dinov3_vit, "vit_base", None)
+    vit_large = getattr(dinov3_vit, "vit_large", None)
+    vit_huge = getattr(dinov3_vit, "vit_huge", None)
+    HAS_OFFICIAL_DINOV3 = True
+except ImportError:
+    HAS_OFFICIAL_DINOV3 = False
+    print("Warning: Official DINOv3 package not found. For local weight loading, please install or clone the DINOv3 repository.")
+
+# Mapping of model name to output feature dimension (channels for the classifier)
+CHANNELS = {
+    "dinov3_vits16": 384,
+    "dinov3_vits16plus": 384,     # ViT-S+ (same hidden size as ViT-S/16)
+    "dinov3_vitb16": 768,
+    "dinov3_vitl16": 1024,
+    "dinov3_vith16plus": 1280,    # ViT-H+ (assumed hidden size for ViT-H)
+    "dinov3_vit7b16": 4096,       # ViT-7B (assumed hidden size or nearest)
+    "dinov3_convnext_tiny": 768,
+    "dinov3_convnext_small": 768,
+    "dinov3_convnext_base": 1024,
+    "dinov3_convnext_large": 1536,
+}
+
+# Optional: Mapping of model names to HuggingFace model IDs for easy default loading
+HF_MODEL_MAPPINGS = {
+    "dinov3_vits16": "facebook/dinov3-vits16-pretrain-lvd1689m",
+    "dinov3_vits16plus": "facebook/dinov3-vits16plus-pretrain-lvd1689m",
+    "dinov3_vitb16": "facebook/dinov3-vitb16-pretrain-lvd1689m",
+    "dinov3_vitl16": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "dinov3_vith16plus": "facebook/dinov3-vith16plus-pretrain-lvd1689m",
+    "dinov3_vit7b16": "facebook/dinov3-vit7b16-pretrain-lvd1689m",
+    "dinov3_convnext_tiny": "facebook/dinov3-convnext-tiny-pretrain-lvd1689m",
+    "dinov3_convnext_small": "facebook/dinov3-convnext-small-pretrain-lvd1689m",
+    "dinov3_convnext_base": "facebook/dinov3-convnext-base-pretrain-lvd1689m",
+    "dinov3_convnext_large": "facebook/dinov3-convnext-large-pretrain-lvd1689m",
+}
+
+# Optional: Factory mapping for official architecture creation (if official code is available)
+MODEL_FACTORY = {
+    "dinov3_vits16": vit_small if HAS_OFFICIAL_DINOV3 else None,
+    "dinov3_vits16plus": vit_small if HAS_OFFICIAL_DINOV3 else None,   # treat S+ as same arch as S
+    "dinov3_vitb16": vit_base if HAS_OFFICIAL_DINOV3 else None,
+    "dinov3_vitl16": vit_large if HAS_OFFICIAL_DINOV3 else None,
+    "dinov3_vith16plus": vit_huge if HAS_OFFICIAL_DINOV3 else None,    # H+ assumed vit_huge arch
+    # ConvNeXt variants not included in MODEL_FACTORY (no direct creation without official code)
+}
+
+class DINOv3Model(nn.Module):
+    def __init__(self, name, num_classes=1, local_files_only=False, model_dir=None, huggingface_path=None):
+        super(DINOv3Model, self).__init__()
+        # Validate model name
+        if name not in CHANNELS:
+            raise ValueError(f"Unknown DINOv3 model: {name}. Available models: {list(CHANNELS.keys())}")
+        self.model_type = name
+
+        # Load model weights from specified source
+        if huggingface_path:
+            # Load from HuggingFace Hub or local HF repository
+            print(f"Loading DINOv3 from HuggingFace path: {huggingface_path}")
+            self._load_from_huggingface(huggingface_path, name)
+        elif local_files_only and model_dir:
+            # Load weights from local .pth file
+            model_path = os.path.join(model_dir, f"{name}_pretrain.pth")
+            if not os.path.exists(model_path):
+                raise ValueError(f"Local file does not exist: {model_path}")
+            print(f"Loading DINOv3 from local file: {model_path}")
+            self._create_model()  # create model architecture
+            self._load_local_weights(model_path)
+        else:
+            # Try PyTorch Hub (will download weights if available and not gated)
+            try:
+                import torch.hub
+                print(f"Loading DINOv3 from torch.hub: {name}")
+                self.model = torch.hub.load('facebookresearch/dinov3', name)
+            except Exception as e:
+                print(f"Cannot load DINOv3 from torch.hub: {e}")
+                # Fallback: try Hugging Face Hub by default mapping
+                try:
+                    self._load_from_huggingface("default", name)
+                except Exception as e2:
+                    raise ValueError(f"Error loading DINOv3 model '{name}': {e2}")
+
+        # Initialize classification head
+        channels = CHANNELS[name]
+        self.fc = nn.Linear(channels, num_classes)
+        # Image normalization (using ImageNet mean/std)
+        self.mean = [0.485, 0.456, 0.406]
+        self.std = [0.229, 0.224, 0.225]
+        self.normalize = Normalize(mean=self.mean, std=self.std)
+
+    def _create_model(self):
+        """Instantiate the model architecture using official DINOv3 code (if available)."""
+        if not HAS_OFFICIAL_DINOV3:
+            raise ImportError("Official DINOv3 code not available. Please install or provide the DINOv3 implementation for _create_model.")
+        model_fn = MODEL_FACTORY.get(self.model_type, None)
+        if model_fn is None:
+            raise ValueError(f"Unsupported model type for local instantiation: {self.model_type}")
+        # For ViT models, ensure patch_size=16; for ConvNeXt, handle accordingly if needed
+        if self.model_type.startswith("dinov3_vit"):
+            # ViT backbone instantiation
+            self.model = model_fn(patch_size=16) if callable(model_fn) else None
+        elif self.model_type.startswith("dinov3_convnext"):
+            # ConvNeXt instantiation if available (e.g., dinov3_conv has builder functions)
+            arch_name = self.model_type.replace("dinov3_", "")
+            self.model = getattr(dinov3_conv, arch_name, None)() if HAS_OFFICIAL_DINOV3 else None
+        else:
+            raise ValueError(f"Model creation for {self.model_type} is not implemented.")
+
+    def _load_local_weights(self, model_path):
+        """Load weights from a local .pth checkpoint into the model."""
+        state_dict = torch.load(model_path, map_location='cpu')
+        # Some checkpoints store weights under 'model' key
+        if isinstance(state_dict, dict) and 'model' in state_dict:
+            state_dict = state_dict['model']
+        self._load_state_dict(state_dict)
+
+    def _load_state_dict(self, state_dict):
+        """Load state_dict into the model, handling missing/unexpected keys."""
+        missing_keys, unexpected_keys = self.model.load_state_dict(state_dict, strict=False)
+        if missing_keys:
+            print(f"Warning: missing keys when loading model weights: {missing_keys}")
+        if unexpected_keys:
+            print(f"Warning: unexpected keys when loading model weights: {unexpected_keys}")
+
+    def _load_from_huggingface(self, hf_path, model_name):
+        """Load model from Hugging Face Hub or local HuggingFace path."""
+        try:
+            from transformers import AutoImageProcessor, AutoModel
+            # Determine HuggingFace model identifier
+            if hf_path == "default":
+                if model_name in HF_MODEL_MAPPINGS:
+                    model_id = HF_MODEL_MAPPINGS[model_name]
+                    print(f"Using default HuggingFace model ID: {model_id}")
+                else:
+                    raise ValueError(f"No default HuggingFace mapping for model: {model_name}")
+            elif os.path.exists(hf_path):
+                # If hf_path is a local directory for a HuggingFace model
+                model_id = hf_path
+            else:
+                # Assume hf_path is directly a model ID on HuggingFace
+                model_id = hf_path
+            print(f"Loading model from HuggingFace: {model_id}")
+            self.model = AutoModel.from_pretrained(model_id)
+        except ImportError:
+            raise ImportError("transformers package is not installed. Please install it with `pip install transformers`.")
+        except Exception as e:
+            raise ValueError(f"Error loading model from HuggingFace: {e}")
+
+    def forward(self, x, return_feature=False, return_tokens=False):
+        """
+        Forward pass through the DINOv3 model.
+        Args:
+            x (torch.Tensor): Input image tensor of shape (B, C, H, W).
+            return_feature (bool): If True, return the backbone feature in addition to the classifier output.
+            return_tokens (bool): If True, (optional) return token-wise features. (Not fully utilized in this implementation)
+        Returns:
+            If return_feature is False: Tensor of shape (B, num_classes) with classification output.
+            If return_feature is True: Tuple (features, class_output), where features is the backbone output (e.g., CLS token embedding).
+        """
+        # Extract features from backbone
+        if hasattr(self.model, 'forward_features'):
+            # Using official DINOv3 model (if it provides forward_features)
+            features_dict = self.model.forward_features(x)
+            # Prefer normalized CLS token if available, otherwise fall back to pooler or first token
+            if 'x_norm_clstoken' in features_dict:
+                features = features_dict['x_norm_clstoken']
+            elif 'pooler_output' in features_dict:
+                features = features_dict['pooler_output']
+            else:
+                # Use first token of patch tokens if provided
+                features = features_dict.get('last_hidden_state', features_dict.get('features', None))
+                if features is not None and isinstance(features, torch.Tensor):
+                    features = features[:, 0]  # take CLS token
+        else:
+            # Using HuggingFace model (AutoModel) which returns a ModelOutput
+            outputs = self.model(x)  # AutoModel expects pixel_values as input if single tensor
+            if isinstance(outputs, dict) or hasattr(outputs, "keys"):
+                # If outputs behaves like a dict or ModelOutput
+                # Try to get pooler_output (CLS embedding) or fallback to last_hidden_state CLS token
+                features = outputs.get('pooler_output', None) if isinstance(outputs, dict) else getattr(outputs, "pooler_output", None)
+                if features is None:
+                    # Fallback to last_hidden_state's CLS token
+                    lh = outputs.get('last_hidden_state', None) if isinstance(outputs, dict) else getattr(outputs, "last_hidden_state", None)
+                    features = lh[:, 0] if lh is not None else None
+            else:
+                # If model returned a plain tensor (some models might just return features)
+                features = outputs
+            if features is None:
+                raise RuntimeError("Unable to extract features from model output.")
+        # Compute classifier output
+        class_output = self.fc(features)
+        if return_feature:
+            # Return both features and classification result
+            return features, class_output
+        else:
+            return class_output
+
+    def get_preprocessing_transforms(self):
+        """
+        Get a torchvision transform for preprocessing input images (normalization).
+        Returns:
+            torchvision.transforms.Normalize: A normalization transform using ImageNet mean and std.
+        """
+        # In practice, you might also include resizing and tensor conversion if needed.
+        return self.normalize
