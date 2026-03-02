@@ -2,3 +2,6 @@
 result/
 MLLM/
 MLLM_results/
+.ipynb_checkpoints/
+.vscode/
+
