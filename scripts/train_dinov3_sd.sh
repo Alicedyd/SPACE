@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
-# 单次训练脚本（由消融脚本改写）
-# 用法示例：
-#   bash train_single_dino336_lora_jpeg.sh \
-#     -g 0 \
-#     -c "RGB" \
-#     -a 8 \
-#     -n "exp1"
-#
-# 仅一次训练，不做循环与并行。
-
 set -euo pipefail
 
-# ========= 基础配置（与原脚本保持一致） =========
 REAL_LIST="/root/autodl-tmp/datasets/COCO-rec/sd2.0/real"
-REAL_LIST_ADD=""                 # 可选的额外 real 列表（留空即可）
-FAKE_LIST="/path/to/fake/images" # ← 请改成你的假图像列表/目录
+REAL_LIST_ADD=""
+VAE_PATH="/root/autodl-tmp/datasets/COCO-rec/sd2.0/sd2.0/"
+VAE_PATH_ADD=""
+FAKE_LIST="${VAE_PATH}"
 DATA_MODE="mscoco"
 ARCH="DINOv3-LoRA:dinov3_vith16plus"
 LORA_RANK=16
@@ -24,7 +15,6 @@ NITER=2
 CROP_SIZE=224
 BATCH_SIZE=16
 LEARNING_RATE=1e-4
-
 DOWN_RESIZE_FACTOR=0.2
 UPPER_RESIZE_FACTOR=3.5
 P_JPEG_FAKE=1.0
@@ -36,65 +26,45 @@ METH_PIXELMIX="uniform"
 P_FREQMIX=0.0
 R_FREQMIX=0.8
 METH_FREQMIX="uniform"
-
 QUALITY_JSON="/root/autodl-tmp/codes/DDA/util_files/MSCOCO_train2017.json"
-
-# 用来添加不固定的实验名称
 EXP_ADD="DDA_REM"
-
-VAE_PATH="/root/autodl-tmp/datasets/COCO-rec/sd2.0/sd2.0/"
-VAE_PATH_ADD="" # 可选的额外 VAE（留空即可）
 CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
-
 USE_CONTRASTIVE=true
 USE_FOCAL_LOSS=false
 USE_RANDOMSCALE=true
+GPU_ID=0
+MIX_COLOR_SPACE="RGB"
+ACCUM_STEPS=16
+EXP_SUFFIX=""
+RUN_TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 
-OPT_FLAGS=""
-
-if $USE_CONTRASTIVE; then
-  OPT_FLAGS+=" --contrastive"
-  echo "Will use contrastive learning"
-fi
-
-if $USE_FOCAL_LOSS; then
-  OPT_FLAGS+=" --use_focal_loss"
-  echo "Will replace BCEWithLogitsLoss with FocalLoss"
-fi
-
-if $USE_RANDOMSCALE; then
-  OPT_FLAGS+=" --use_randomscale"
-  echo "Will apply random scale to all images"
-fi
-
-# ========= 可通过命令行覆盖的参数 =========
-GPU_ID=0              # -g
-MIX_COLOR_SPACE="RGB" # -c
-ACCUM_STEPS=16        # -a
-EXP_SUFFIX=""         # -n 仅用于区分实验名，可选
-
-# 解析命令行参数
-while getopts ":g:c:a:n:" opt; do
+while getopts ":g:c:a:n:t:" opt; do
   case $opt in
-  g) GPU_ID="$OPTARG" ;;
-  c) MIX_COLOR_SPACE="$OPTARG" ;;
-  a) ACCUM_STEPS="$OPTARG" ;;
-  n) EXP_SUFFIX="$OPTARG" ;;
-  \?)
-    echo "用法: $0 [-g GPU_ID] [-c MIX_COLOR_SPACE] [-a ACCUM_STEPS] [-n EXP_SUFFIX]"
-    exit 1
-    ;;
+    g) GPU_ID="$OPTARG" ;;
+    c) MIX_COLOR_SPACE="$OPTARG" ;;
+    a) ACCUM_STEPS="$OPTARG" ;;
+    n) EXP_SUFFIX="$OPTARG" ;;
+    t) RUN_TIMESTAMP="$OPTARG" ;;
+    \?)
+      echo "Usage: $0 [-g GPU_ID] [-c MIX_COLOR_SPACE] [-a ACCUM_STEPS] [-n EXP_SUFFIX] [-t RUN_TIMESTAMP]"
+      exit 1
+      ;;
   esac
 done
 
-# ========= 组装实验名（去掉原脚本中未定义的 VAE_MODEL）=========
-EXP_NAME="EXP_${EXP_ADD}_DINO_${CROP_SIZE}_JPEGaug_lora${LORA_RANK}_lr${LEARNING_RATE}_BS_${BATCH_SIZE}_ACC_${ACCUM_STEPS}_colorspace_${MIX_COLOR_SPACE}"
-if [[ -n "${EXP_SUFFIX}" ]]; then
-  EXP_NAME="${EXP_NAME}_${EXP_SUFFIX}"
-fi
+OPT_FLAGS=""
+$USE_CONTRASTIVE && OPT_FLAGS+=" --contrastive"
+$USE_FOCAL_LOSS && OPT_FLAGS+=" --use_focal_loss"
+$USE_RANDOMSCALE && OPT_FLAGS+=" --use_randomscale"
 
-echo ">>> 开始训练：${EXP_NAME}"
-echo "GPU: ${GPU_ID} | 颜色空间: ${MIX_COLOR_SPACE} | 累积步数: ${ACCUM_STEPS}"
+EXP_NAME="EXP_${EXP_ADD}_DINO_${CROP_SIZE}_JPEGaug_lora${LORA_RANK}_lr${LEARNING_RATE}_BS_${BATCH_SIZE}_ACC_${ACCUM_STEPS}_colorspace_${MIX_COLOR_SPACE}"
+[[ -n "${EXP_SUFFIX}" ]] && EXP_NAME="${EXP_NAME}_${EXP_SUFFIX}"
+EXP_NAME="${EXP_NAME}_${RUN_TIMESTAMP}"
+
+mkdir -p "$CHECKPOINTS_DIR"
+
+echo ">>> Starting training: ${EXP_NAME}"
+echo "GPU: ${GPU_ID} | Color: ${MIX_COLOR_SPACE} | Accum: ${ACCUM_STEPS} | Timestamp: ${RUN_TIMESTAMP}"
 
 python train.py \
   --gpu_ids "${GPU_ID}" \
@@ -130,4 +100,4 @@ python train.py \
   --meth_freqmix "${METH_FREQMIX}" \
   $OPT_FLAGS
 
-echo ">>> 训练完成。权重保存在：${CHECKPOINTS_DIR}"
+echo ">>> Training finished. Checkpoints saved in: ${CHECKPOINTS_DIR}/${EXP_NAME}"

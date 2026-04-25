@@ -1,7 +1,9 @@
 **/__pycache__/
 result/
+merge_utils/*.csv
 MLLM/
 MLLM_results/
 .ipynb_checkpoints/
 .vscode/
+logs/
 

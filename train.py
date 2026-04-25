@@ -1,6 +1,10 @@
 import os
 import time
-from tensorboardX import SummaryWriter
+
+try:
+    from tensorboardX import SummaryWriter
+except ModuleNotFoundError:
+    from torch.utils.tensorboard import SummaryWriter
 from data import create_dataloader
 from networks.trainer import Trainer
 from options import TrainOptions

@@ -1,39 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REAL_LIST="/root/autodl-tmp/datasets/StyleCOCO/train2017/real"
+REAL_LIST="/root/autodl-tmp/datasets/SPACE_symlinks/sd_clip_union_train_v1/real"
 REAL_LIST_ADD=""
-VAE_PATH="/root/autodl-tmp/datasets/StyleCOCO/train2017/fake"
+VAE_PATH="/root/autodl-tmp/datasets/SPACE_symlinks/sd_clip_union_train_v1/fake"
 VAE_PATH_ADD=""
 FAKE_LIST="${VAE_PATH}"
 DATA_MODE="mscoco"
-ARCH="CLIP-LoRA:ViT-L/14"
+ARCH="DINOv3-LoRA:dinov3_vith16plus"
 LORA_RANK=16
 LORA_ALPHA=32
 OPTIM="adam"
 NITER=2
-BATCH_SIZE=16
 CROP_SIZE=224
+BATCH_SIZE=16
 LEARNING_RATE=1e-4
 DOWN_RESIZE_FACTOR=0.2
 UPPER_RESIZE_FACTOR=3.5
-P_JPEG_FAKE=0.5
+P_JPEG_FAKE=1.0
 P_PNG_REAL=0.0
 JPEG_QUALITY=100
-P_PIXELMIX=0.0
+P_PIXELMIX=0.2
 R_PIXELMIX=0.8
 METH_PIXELMIX="uniform"
 P_FREQMIX=0.0
 R_FREQMIX=0.8
 METH_FREQMIX="uniform"
-QUALITY_JSON="./util_files/MSCOCO_train2017.json"
-EXP_ADD="CLIP_REM"
+QUALITY_JSON="/root/autodl-tmp/codes/DDA/util_files/MSCOCO_train2017.json"
+EXP_ADD="SDCLIPMIX_BAD"
 CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
 USE_CONTRASTIVE=true
-USE_MULTI_VAE=false
 USE_FOCAL_LOSS=false
-USE_IS_RESIZE=true
-USE_RANDOMSCALE=true
+USE_RANDOMSCALE=false
 GPU_ID=0
 MIX_COLOR_SPACE="RGB"
 ACCUM_STEPS=16
@@ -56,12 +54,10 @@ done
 
 OPT_FLAGS=""
 $USE_CONTRASTIVE && OPT_FLAGS+=" --contrastive"
-$USE_MULTI_VAE && OPT_FLAGS+=" --multi_vae"
 $USE_FOCAL_LOSS && OPT_FLAGS+=" --use_focal_loss"
-$USE_IS_RESIZE && OPT_FLAGS+=" --is_resize"
 $USE_RANDOMSCALE && OPT_FLAGS+=" --use_randomscale"
 
-EXP_NAME="EXP_${EXP_ADD}_CLIP_${CROP_SIZE}_JPEGaug_lora${LORA_RANK}_lr${LEARNING_RATE}_BS_${BATCH_SIZE}_ACC_${ACCUM_STEPS}_colorspace_${MIX_COLOR_SPACE}"
+EXP_NAME="EXP_${EXP_ADD}_DINO_${CROP_SIZE}_JPEGaug_lora${LORA_RANK}_lr${LEARNING_RATE}_BS_${BATCH_SIZE}_ACC_${ACCUM_STEPS}_colorspace_${MIX_COLOR_SPACE}"
 [[ -n "${EXP_SUFFIX}" ]] && EXP_NAME="${EXP_NAME}_${EXP_SUFFIX}"
 EXP_NAME="${EXP_NAME}_${RUN_TIMESTAMP}"
 
@@ -69,6 +65,8 @@ mkdir -p "$CHECKPOINTS_DIR"
 
 echo ">>> Starting training: ${EXP_NAME}"
 echo "GPU: ${GPU_ID} | Color: ${MIX_COLOR_SPACE} | Accum: ${ACCUM_STEPS} | Timestamp: ${RUN_TIMESTAMP}"
+echo "Merged dataset: ${REAL_LIST} + ${VAE_PATH}"
+echo "use_randomscale: ${USE_RANDOMSCALE}"
 
 python train.py \
   --gpu_ids "${GPU_ID}" \

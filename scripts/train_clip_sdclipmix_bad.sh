@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REAL_LIST="/root/autodl-tmp/datasets/StyleCOCO/train2017/real"
+REAL_LIST="/root/autodl-tmp/datasets/SPACE_symlinks/sd_clip_union_train_v1/real"
 REAL_LIST_ADD=""
-VAE_PATH="/root/autodl-tmp/datasets/StyleCOCO/train2017/fake"
+VAE_PATH="/root/autodl-tmp/datasets/SPACE_symlinks/sd_clip_union_train_v1/fake"
 VAE_PATH_ADD=""
 FAKE_LIST="${VAE_PATH}"
 DATA_MODE="mscoco"
@@ -27,13 +27,13 @@ P_FREQMIX=0.0
 R_FREQMIX=0.8
 METH_FREQMIX="uniform"
 QUALITY_JSON="./util_files/MSCOCO_train2017.json"
-EXP_ADD="CLIP_REM"
+EXP_ADD="SDCLIPMIX_BAD"
 CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
 USE_CONTRASTIVE=true
 USE_MULTI_VAE=false
 USE_FOCAL_LOSS=false
 USE_IS_RESIZE=true
-USE_RANDOMSCALE=true
+USE_RANDOMSCALE=false
 GPU_ID=0
 MIX_COLOR_SPACE="RGB"
 ACCUM_STEPS=16
@@ -69,6 +69,8 @@ mkdir -p "$CHECKPOINTS_DIR"
 
 echo ">>> Starting training: ${EXP_NAME}"
 echo "GPU: ${GPU_ID} | Color: ${MIX_COLOR_SPACE} | Accum: ${ACCUM_STEPS} | Timestamp: ${RUN_TIMESTAMP}"
+echo "Merged dataset: ${REAL_LIST} + ${VAE_PATH}"
+echo "use_randomscale: ${USE_RANDOMSCALE}"
 
 python train.py \
   --gpu_ids "${GPU_ID}" \

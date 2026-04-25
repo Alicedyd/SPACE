@@ -46,7 +46,7 @@ def create_train_transforms(
     if is_crop:
         resize_func = PadRandomCrop(size)
     else:
-        print(f"Using Resize to {size} x {size}")
+        # print(f"Using Resize to {size} x {size}")
         resize_func = transforms.Resize((size, size))
 
     # 构建转换列表
@@ -237,7 +237,10 @@ class RealFakeDataset(Dataset):
         )
         if opt.use_randomscale:
             transform_list_png = create_single_train_transforms(
-                size=opt.cropSize, mean=MEAN[stat_from], std=STD[stat_from]
+                size=opt.cropSize,
+                mean=MEAN[stat_from],
+                std=STD[stat_from],
+                is_crop=not opt.is_resize,
             )
         self.transform_png = ComposedTransforms(transform_list_png)
 
@@ -253,7 +256,10 @@ class RealFakeDataset(Dataset):
         )
         if opt.use_randomscale:
             transform_list_jpeg = create_single_train_transforms(
-                size=opt.cropSize, mean=MEAN[stat_from], std=STD[stat_from]
+                size=opt.cropSize,
+                mean=MEAN[stat_from],
+                std=STD[stat_from],
+                is_crop=not opt.is_resize,
             )
         self.transform_jpeg = ComposedTransforms(transform_list_jpeg)
 

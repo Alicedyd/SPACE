@@ -1,75 +1,58 @@
-#!/bin/bash
-#
-# DeepFake Detection Model Evaluation Script
-# This script runs validation tests on various datasets for AI-generated image detection
-#
+#!/usr/bin/env bash
+set -euo pipefail
 
+ARCH="CLIP-LoRA:ViT-L/14"
+CONFIG_FILE="/root/autodl-tmp/codes/val_configs/all_datasets.yaml"
+CROP_SIZE=224
+LORA_RANK=16
+LORA_ALPHA=32
+BATCH_SIZE=64
+JPEG_QUALITY=100
+GPU_ID=0
+SAVE_BAD_CASE=false
+SKIP_PATH_CHECK=false
 USE_JPEG=false
 USE_RESIZE=false
 USE_BLUR=false
+USE_IS_RESIZE=true
 JPEG=96
 RESIZE=0.05
 BLUR=2.0
+MAX_SAMPLE=-1
+CKPT=""
+RESULT_NAME=""
+RUN_TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 
-# ===== MODEL CONFIGURATION =====
-ARCH="CLIP-LoRA:ViT-L/14"
-CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_CLIP_224_LR1e-4_single_run/EXP_CLIP_jpeg90_nomixup_CLIP_224_JPEGaug_lora8_lr1e-4_BS_16_ACC_1_colorspace_RGB/model_epoch_best.pth"
+while getopts ":k:r:g:t:m:" opt; do
+  case $opt in
+    k) CKPT="$OPTARG" ;;
+    r) RESULT_NAME="$OPTARG" ;;
+    g) GPU_ID="$OPTARG" ;;
+    t) RUN_TIMESTAMP="$OPTARG" ;;
+    m) MAX_SAMPLE="$OPTARG" ;;
+    \?)
+      echo "Usage: $0 -k CKPT_PATH -r RESULT_NAME [-g GPU_ID] [-t RUN_TIMESTAMP] [-m MAX_SAMPLE]"
+      exit 1
+      ;;
+  esac
+done
 
-RESULT_FOLDER="./result/clip_wildrf"
-CONFIG_FILE="../val_configs/WildRF.yaml"
-CROP_SIZE=224
-# ===== TRAINING PARAMETERS =====
-LORA_RANK=8
-LORA_ALPHA=1
-BATCH_SIZE=64
+if [[ -z "$CKPT" || -z "$RESULT_NAME" ]]; then
+  echo "Both -k CKPT_PATH and -r RESULT_NAME are required."
+  exit 1
+fi
 
-# ===== TEST CONDITIONS =====
-JPEG_QUALITY=100 # Set quality for JPEG compression test (100 = no compression)
-GPU_ID=0         # GPU ID to use for evaluation
-
-# ===== DATA PARAMETERS =====
-DATA_MODE="" # Optional data mode parameter
-
-# ===== OPTIONS =====
-SAVE_BAD_CASE=false   # Whether to save misclassified examples
-SKIP_PATH_CHECK=false # Whether to skip checking if paths exist
-
-USE_IS_RESIZE=true
-
-# Build optional flags
 OPT_FLAGS=""
-
-if $SAVE_BAD_CASE; then
-  OPT_FLAGS+=" --save_bad_case"
-  echo "Will save misclassified examples"
-fi
-
-if $SKIP_PATH_CHECK; then
-  OPT_FLAGS+=" --skip_path_check"
-  echo "Will skip path verification"
-fi
-
-if $USE_IS_RESIZE; then
-  OPT_FLAGS+=" --is_resize"
-  echo "Will use is_resize option"
-fi
-
+$SAVE_BAD_CASE && OPT_FLAGS+=" --save_bad_case"
+$SKIP_PATH_CHECK && OPT_FLAGS+=" --skip_path_check"
+$USE_IS_RESIZE && OPT_FLAGS+=" --is_resize"
 $USE_JPEG && OPT_FLAGS+=" --jpeg ${JPEG}"
 $USE_RESIZE && OPT_FLAGS+=" --resize ${RESIZE}"
 $USE_BLUR && OPT_FLAGS+=" --blur ${BLUR}"
 
-$USE_JPEG && RESULT_FOLDER+="_JPEG_${JPEG}"
-$USE_RESIZE && RESULT_FOLDER+="_RESIZE_${RESIZE}"
-$USE_BLUR && RESULT_FOLDER+="_BLUR_${BLUR}"
-
-MAX_SAMPLE=-1
-
-USE_PATCH=false
-
-# Create results directory
+RESULT_FOLDER="/root/autodl-tmp/codes/SPACE/result/SPACE/${RESULT_NAME}_${RUN_TIMESTAMP}"
 mkdir -p "$RESULT_FOLDER"
 
-# Log configuration to result folder
 echo "=== Configuration ===" >"$RESULT_FOLDER/config_summary.txt"
 echo "Architecture: $ARCH" >>"$RESULT_FOLDER/config_summary.txt"
 echo "Checkpoint: $CKPT" >>"$RESULT_FOLDER/config_summary.txt"
@@ -79,12 +62,9 @@ echo "LoRA alpha: $LORA_ALPHA" >>"$RESULT_FOLDER/config_summary.txt"
 echo "JPEG quality: $JPEG_QUALITY" >>"$RESULT_FOLDER/config_summary.txt"
 echo "Run date: $(date)" >>"$RESULT_FOLDER/config_summary.txt"
 
-# Print startup message
 echo "Starting evaluation with $ARCH model"
 echo "Results will be saved to: $RESULT_FOLDER"
 
-# Run the validation script
-echo "Running validation..."
 python validate.py \
   --arch="$ARCH" \
   --config="$CONFIG_FILE" \
@@ -95,14 +75,8 @@ python validate.py \
   --lora_alpha="$LORA_ALPHA" \
   --jpeg_quality="$JPEG_QUALITY" \
   --gpu_id="$GPU_ID" \
-  --max_sample=$MAX_SAMPLE \
-  --crop_size=$CROP_SIZE \
+  --max_sample="$MAX_SAMPLE" \
+  --crop_size="$CROP_SIZE" \
   $OPT_FLAGS
 
-# Check if the run was successful
-if [ $? -eq 0 ]; then
-  echo "Evaluation completed successfully"
-  echo "Results are available in: $RESULT_FOLDER"
-else
-  echo "Evaluation failed with error code $?"
-fi
+echo "Evaluation finished: $RESULT_FOLDER"

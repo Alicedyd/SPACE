@@ -8,10 +8,15 @@ from itertools import product
 # -------------------------------------------------
 
 FOLDER_TRIPLETS = [
+    # (
+    #     "/root/autodl-tmp/codes/DDA/result/dda-all-datasets-v2/prediction_results/scores",
+    #     "/root/autodl-tmp/codes/DDA/result/flux-dda-all-datasets-v2/prediction_results/scores",
+    #     "/root/autodl-tmp/codes/DDA/result/clip_jpeg90_nomixup_all_datasets/prediction_results/scores/",
+    # ),
     (
-        "/root/autodl-tmp/codes/DDA/result/dda-all-datasets-v2/prediction_results/scores",
-        "/root/autodl-tmp/codes/DDA/result/flux-dda-all-datasets-v2/prediction_results/scores",
-        "/root/autodl-tmp/codes/DDA/result/clip_jpeg90_nomixup_all_datasets/prediction_results/scores/",
+        "/root/autodl-tmp/codes/SPACE/result/SPACE/SD_REM_20260421_081600/prediction_results/scores",
+        "/root/autodl-tmp/codes/SPACE/result/SPACE/FLUX_Dinov3_20260423_153847/prediction_results/scores",
+        "/root/autodl-tmp/codes/SPACE/result/SPACE/CLIP_REM_20260421_162034/prediction_results/scores",
     ),
 ]
 
@@ -19,8 +24,8 @@ FOLDER_TRIPLETS = [
 # 2. 阈值组合 (增加第三个模型的阈值列表)
 # -------------------------------------------------
 SD_THRESH_LIST = [0.5]
-# FLUX_THRESH_LIST = [1.0]
 FLUX_THRESH_LIST = [0.98]
+# FLUX_THRESH_LIST = [i / 100 for i in range(0, 100)]
 MODEL3_THRESH_LIST = [0.5]
 # FLUX_THRESH_LIST = [
 #     0.1,
@@ -290,7 +295,7 @@ if records:
     final_df = pd.DataFrame(records)
     # 把 metric 列展开成三行，且顺序固定
     final_df = final_df.sort_values(["thresh1", "thresh2", "thresh3", "metric"])
-    final_csv = "all_results_3models_merged.csv"
+    final_csv = "SPACE_merged.csv"
     final_df.to_csv(final_csv, index=False)
     print(f"✅ All done! 三个模型融合结果已保存至 {final_csv}")
 else:
