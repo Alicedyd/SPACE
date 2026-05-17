@@ -20,6 +20,7 @@ from validate import (
     MEAN,
     STD,
     check_all_paths_exist,
+    get_stat_from_arch,
     gaussian_blur,
     png2jpg,
     read_images_in_dir,
@@ -72,7 +73,7 @@ class EvalImageDataset(Dataset):
         self.blur = blur
         self.is_genimage_fake = is_genimage_fake
         self.is_crop = is_crop
-        stat_from = "imagenet" if arch.lower().startswith("imagenet") else "clip"
+        stat_from = get_stat_from_arch(arch)
         crop_func = (
             transforms.CenterCrop(crop_size)
             if is_crop

@@ -10,9 +10,10 @@
 # 仅一次训练，不做循环与并行。
 
 set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
 # ========= 基础配置（与原脚本保持一致） =========
-REAL_LIST="/root/autodl-tmp/datasets/COCO-rec/sd2.0/real"
+REAL_LIST="${SPACE_DATA_ROOT}/COCO-rec/sd2.0/real"
 REAL_LIST_ADD=""                 # 可选的额外 real 列表（留空即可）
 FAKE_LIST="/path/to/fake/images" # ← 请改成你的假图像列表/目录
 DATA_MODE="mscoco"
@@ -37,14 +38,14 @@ P_FREQMIX=0.0
 R_FREQMIX=0.8
 METH_FREQMIX="uniform"
 
-QUALITY_JSON="/root/autodl-tmp/codes/DDA/util_files/MSCOCO_train2017.json"
+QUALITY_JSON="${DDA_PROJECT_ROOT}/util_files/MSCOCO_train2017.json"
 
 # 用来添加不固定的实验名称
 EXP_ADD="DDA_REM"
 
-VAE_PATH="/root/autodl-tmp/datasets/COCO-rec/sd2.0/sd2.0/"
+VAE_PATH="${SPACE_DATA_ROOT}/COCO-rec/sd2.0/sd2.0/"
 VAE_PATH_ADD="" # 可选的额外 VAE（留空即可）
-CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
+CHECKPOINTS_DIR="${SPACE_CKPT_ROOT}/checkpoints_SPACE"
 
 USE_CONTRASTIVE=true
 USE_FOCAL_LOSS=false

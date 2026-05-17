@@ -182,6 +182,8 @@ class Trainer(BaseModel):
             lora_args["lora_targets"] = (
                 opt.lora_targets.split(",") if opt.lora_targets else None
             )
+        if hasattr(opt, "model_dir") and opt.model_dir:
+            lora_args["huggingface_path"] = opt.model_dir
 
         self.model = get_model(name=opt.arch, **lora_args)
 

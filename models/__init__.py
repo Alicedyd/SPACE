@@ -6,6 +6,8 @@ from .dinov2_models_lora import DINOv2ModelWithLoRA
 from .dinov3_models import DINOv3Model
 from .dinov3_models_lora import DINOv3ModelWithLoRA
 from .qwen_embedding import Qwen3VLEmbedderLoRA, Qwen3VLEmbedder
+from .pe_models import PEModel
+from .path_utils import model_path
 
 from .align import resnet50
 
@@ -71,6 +73,11 @@ VALID_NAMES = [
     "DINOv3-LoRA:dinov3_vith16plus",
     "Qwen3-Embedding:2B",
     "Qwen3-LoRA:2B",
+    "PE:PE-Core-T16-384",
+    "PE:PE-Core-S16-384",
+    "PE:PE-Core-B16-224",
+    "PE:PE-Core-L14-336",
+    "PE:PE-Core-G14-448",
 ]
 
 
@@ -115,6 +122,18 @@ def get_model(
 
     if name == "align":
         return resnet50(num_classes=1, stride0=1, dropout=0.5)
+
+    if name.startswith("PE:"):
+        model_family = "Perception Encoder"
+        model_type = name[3:]
+        print(f"  - Model family: {model_family}")
+        print(f"  - Model type: {model_type}")
+        if huggingface_path:
+            print(f"  - PE checkpoint path: {huggingface_path}")
+
+        model = PEModel(model_type, checkpoint_path=huggingface_path)
+        print("  - Successfully initialized PE linear probing model")
+        return model
 
     if name.startswith("Imagenet:"):
         model_family = "ImageNet"
@@ -226,7 +245,7 @@ def get_model(
         print(f"  - Model type: {model_type}")
 
         if model_type == "dinov3_vitl16" and huggingface_path is None:
-            huggingface_path = "/root/autodl-tmp/codes/model_pth/dinov3/pth-vitl16-lvd"
+            huggingface_path = model_path("dinov3", "pth-vitl16-lvd")
             print(
                 f"  - Using default HuggingFace path for dinov3_vitl16: {huggingface_path}"
             )
@@ -244,7 +263,7 @@ def get_model(
         print(f"  - Model type: {model_type}")
 
         if model_type == "dinov3_vitl16" and huggingface_path is None:
-            huggingface_path = "/root/autodl-tmp/codes/model_pth/dinov3/pth-vitl16-lvd"
+            huggingface_path = model_path("dinov3", "pth-vitl16-lvd")
             print(
                 f"  - Using default HuggingFace path for dinov3_vitl16: {huggingface_path}"
             )
@@ -277,9 +296,7 @@ def get_model(
         if huggingface_path is None:
             # 请根据你的实际路径修改这里
             if model_type == "2B":
-                huggingface_path = (
-                    "/root/autodl-tmp/codes/model_pth/qwen3-vl-embedding/"
-                )
+                huggingface_path = model_path("qwen3-vl-embedding")
 
             print(f"  - Using default path for Qwen: {huggingface_path}")
 
@@ -301,9 +318,7 @@ def get_model(
         if huggingface_path is None:
             # 请根据你的实际路径修改这里
             if model_type == "2B":
-                huggingface_path = (
-                    "/root/autodl-tmp/codes/model_pth/qwen3-vl-embedding/"
-                )
+                huggingface_path = model_path("qwen3-vl-embedding")
 
             print(f"  - Using default path for Qwen: {huggingface_path}")
 

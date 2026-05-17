@@ -17,7 +17,11 @@ class DINOv3ModelWithLoRA(nn.Module):
     ):
         super(DINOv3ModelWithLoRA, self).__init__()
         # Initialize the base DINOv3 model
-        self.base_model = DINOv3Model(name, num_classes)
+        self.base_model = DINOv3Model(
+            name,
+            num_classes,
+            huggingface_path=huggingface_path,
+        )
         # self.base_model = DINOv3Model(
         #     name=name,
         #     num_classes=num_classes,

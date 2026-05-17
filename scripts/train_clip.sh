@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
-REAL_LIST="/root/autodl-tmp/datasets/StyleCOCO/train2017/real"
+REAL_LIST="${SPACE_DATA_ROOT}/StyleCOCO/train2017/real"
 REAL_LIST_ADD=""
-VAE_PATH="/root/autodl-tmp/datasets/StyleCOCO/train2017/fake"
+VAE_PATH="${SPACE_DATA_ROOT}/StyleCOCO/train2017/fake"
 VAE_PATH_ADD=""
 FAKE_LIST="${VAE_PATH}"
 DATA_MODE="mscoco"
@@ -28,7 +29,7 @@ R_FREQMIX=0.8
 METH_FREQMIX="uniform"
 QUALITY_JSON="./util_files/MSCOCO_train2017.json"
 EXP_ADD="CLIP_REM_P_JPEG_0.8"
-CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
+CHECKPOINTS_DIR="${SPACE_CKPT_ROOT}/checkpoints_SPACE"
 USE_CONTRASTIVE=true
 USE_MULTI_VAE=false
 USE_FOCAL_LOSS=false

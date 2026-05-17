@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
 ARCH="DINOv3-LoRA:dinov3_vith16plus"
-CONFIG_FILE="/root/autodl-tmp/codes/val_configs/all_datasets.yaml"
+CONFIG_FILE="${SPACE_VAL_CONFIG_ROOT}/all_datasets.yaml"
 CROP_SIZE=224
 LORA_RANK=16
 LORA_ALPHA=32
@@ -22,7 +23,7 @@ RESIZE=0.05
 BLUR=2.0
 
 MAX_SAMPLE=-1
-CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/pure_dinov3/FLUX.pth"
+CKPT="${SPACE_CKPT_ROOT}/checkpoints_SPACE/pure_dinov3/FLUX.pth"
 RESULT_NAME="FLUX_Dinov3"
 RUN_TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 
@@ -53,7 +54,7 @@ $USE_JPEG && OPT_FLAGS+=" --jpeg ${JPEG}"
 $USE_RESIZE && OPT_FLAGS+=" --resize ${RESIZE}"
 $USE_BLUR && OPT_FLAGS+=" --blur ${BLUR}"
 
-RESULT_FOLDER="/root/autodl-tmp/codes/SPACE/result/SPACE/${RESULT_NAME}_${RUN_TIMESTAMP}"
+RESULT_FOLDER="${SPACE_PROJECT_ROOT}/result/SPACE/${RESULT_NAME}_${RUN_TIMESTAMP}"
 mkdir -p "$RESULT_FOLDER"
 
 echo "=== Configuration ===" >"$RESULT_FOLDER/config_summary.txt"

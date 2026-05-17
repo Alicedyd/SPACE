@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel
 import os
+from .path_utils import model_path
 
 CHANNELS = {
     "dinov3_vitl16": 1024,
@@ -10,8 +11,8 @@ CHANNELS = {
 }
 
 PATH = {
-    "dinov3_vitl16": "/root/autodl-tmp/codes/model_pth/dinov3_backup/pth-vitl16-lvd/",
-    "dinov3_vith16plus": "/root/autodl-tmp/codes/model_pth/dinov3_backup/pth-vith16plus-lvd/",
+    "dinov3_vitl16": model_path("dinov3_backup", "pth-vitl16-lvd"),
+    "dinov3_vith16plus": model_path("dinov3_backup", "pth-vith16plus-lvd"),
 }
 
 
@@ -35,11 +36,11 @@ class Mlp(nn.Module):
 
 
 class DINOv3Model(nn.Module):
-    def __init__(self, name, num_classes=1):
+    def __init__(self, name, num_classes=1, huggingface_path=None):
         super(DINOv3Model, self).__init__()
         print(f"Loading DINOv3 from local: {name}")
 
-        local_dir = PATH[name]
+        local_dir = huggingface_path or PATH[name]
         self.model = AutoModel.from_pretrained(local_dir, weights_only=False)
         self.fc = Mlp(CHANNELS[name], 512, num_classes)
 

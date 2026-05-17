@@ -5,6 +5,7 @@ from torch.hub import load_state_dict_from_url
 from torchvision.transforms import Normalize
 
 from functools import partial
+from .path_utils import model_path
 try:
     from dinov2.models.vision_transformer import (
         vit_small, vit_base, vit_large, vit_giant2,
@@ -86,8 +87,9 @@ class DINOv2Model(nn.Module):
                 import torch.hub
                 print(f"Loading DINOv2 from hub: {name}")
                 # self.model = torch.hub.load('facebookresearch/dinov2', name)
-                self.model = torch.hub.load('/root/autodl-tmp/codes/model_pth/dinov2', name, source='local', pretrained=False)
-                ckpt = torch.load("/root/autodl-tmp/codes/model_pth/dinov2/dinov2_vitl14_pretrain.pth", map_location="cpu")
+                dinov2_dir = model_path("dinov2")
+                self.model = torch.hub.load(dinov2_dir, name, source='local', pretrained=False)
+                ckpt = torch.load(os.path.join(dinov2_dir, "dinov2_vitl14_pretrain.pth"), map_location="cpu")
                 self.model.load_state_dict(ckpt, strict=True)
             except Exception as e:
                 print(f"Cannot load DINOv2 from hub: {e}")

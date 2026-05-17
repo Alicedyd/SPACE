@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
 source /root/miniconda3/etc/profile.d/conda.sh
 conda activate DDA
 
-CONFIG_FILE="/root/autodl-tmp/codes/val_configs/all_datasets.yaml"
+CONFIG_FILE="${SPACE_VAL_CONFIG_ROOT}/all_datasets.yaml"
 GPU_ID=0
 BATCH_SIZE=64
 MAX_SAMPLE=-1
@@ -19,9 +20,9 @@ RESULT_NAME="SPACE_MERGED_MIX_SD/rem_FLUX/d3_CLIP/rem"
 # FLUX_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/FLUX-DDA.pth"
 # CLIP_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/CLIP.pth"
 
-SD_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/SD_REM_model_iters_110000_20260419_145110.pth"
-FLUX_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov3/FLUX.pth"
-CLIP_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/CLIP_REM_model_iters_85000_20260421_001237.pth"
+SD_CKPT="${SPACE_CKPT_ROOT}/checkpoints_SPACE/best_REM_codex/SD_REM_model_iters_110000_20260419_145110.pth"
+FLUX_CKPT="${SPACE_CKPT_ROOT}/checkpoints_SPACE/best_dinov3/FLUX.pth"
+CLIP_CKPT="${SPACE_CKPT_ROOT}/checkpoints_SPACE/best_REM_codex/CLIP_REM_model_iters_85000_20260421_001237.pth"
 
 SD_THRESHOLD=0.5
 FLUX_THRESHOLD=0.98
@@ -83,7 +84,7 @@ while getopts ":s:f:c:r:g:t:m:" opt; do
   esac
 done
 
-RESULT_FOLDER="/root/autodl-tmp/codes/SPACE/result/SPACE_merged/${RESULT_NAME}_${RUN_TIMESTAMP}"
+RESULT_FOLDER="${SPACE_PROJECT_ROOT}/result/SPACE_merged/${RESULT_NAME}_${RUN_TIMESTAMP}"
 mkdir -p "$RESULT_FOLDER"
 
 OPT_FLAGS=""

@@ -3,10 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoProcessor, AutoModelForImageTextToText
 from peft import LoraConfig, get_peft_model, TaskType
+from .path_utils import model_path
 
 # 定义默认路径，你可以根据实际情况修改
 DEFAULT_PATHS = {
-    "2B": "/root/autodl-tmp/codes/model_pth/qwen3-vl-embedding/",
+    "2B": model_path("qwen3-vl-embedding"),
 }
 
 

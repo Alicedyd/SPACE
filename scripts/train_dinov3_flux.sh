@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
-REAL_LIST="/root/autodl-tmp/datasets/COCO-rec/flux-dev/real"
+REAL_LIST="${SPACE_DATA_ROOT}/COCO-rec/flux-dev/real"
 REAL_LIST_ADD=""
-VAE_PATH="/root/autodl-tmp/datasets/COCO-rec/flux-dev/flux-dev/"
+VAE_PATH="${SPACE_DATA_ROOT}/COCO-rec/flux-dev/flux-dev/"
 VAE_PATH_ADD=""
 FAKE_LIST="${VAE_PATH}"
 DATA_MODE="mscoco"
@@ -26,9 +27,9 @@ METH_PIXELMIX="uniform"
 P_FREQMIX=0.0
 R_FREQMIX=0.8
 METH_FREQMIX="uniform"
-QUALITY_JSON="/root/autodl-tmp/codes/DDA/util_files/MSCOCO_train2017.json"
+QUALITY_JSON="${DDA_PROJECT_ROOT}/util_files/MSCOCO_train2017.json"
 EXP_ADD="FLUX_REM_P_JPEG_0.8"
-CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
+CHECKPOINTS_DIR="${SPACE_CKPT_ROOT}/checkpoints_SPACE"
 USE_CONTRASTIVE=true
 USE_FOCAL_LOSS=false
 USE_RANDOMSCALE=true

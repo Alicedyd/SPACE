@@ -45,9 +45,25 @@ def set_seed():
 
 
 # Constants for normalization
-MEAN = {"imagenet": [0.485, 0.456, 0.406], "clip": [0.48145466, 0.4578275, 0.40821073]}
+MEAN = {
+    "imagenet": [0.485, 0.456, 0.406],
+    "clip": [0.48145466, 0.4578275, 0.40821073],
+    "pe": [0.5, 0.5, 0.5],
+}
 
-STD = {"imagenet": [0.229, 0.224, 0.225], "clip": [0.26862954, 0.26130258, 0.27577711]}
+STD = {
+    "imagenet": [0.229, 0.224, 0.225],
+    "clip": [0.26862954, 0.26130258, 0.27577711],
+    "pe": [0.5, 0.5, 0.5],
+}
+
+
+def get_stat_from_arch(arch):
+    if arch.startswith("PE:"):
+        return "pe"
+    if arch.lower().startswith("imagenet"):
+        return "imagenet"
+    return "clip"
 
 
 def find_best_threshold(y_true, y_pred):
@@ -173,7 +189,7 @@ class RealFakeDataset(Dataset):
         self.label = label
 
         # Set up image transforms
-        stat_from = "imagenet" if arch.lower().startswith("imagenet") else "clip"
+        stat_from = get_stat_from_arch(arch)
         crop_func = (
             transforms.CenterCrop(crop_size)
             if is_crop
