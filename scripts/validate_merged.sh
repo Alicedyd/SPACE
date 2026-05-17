@@ -9,47 +9,51 @@ GPU_ID=0
 BATCH_SIZE=64
 MAX_SAMPLE=-1
 RUN_TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-RESULT_NAME="SPACE_MERGED"
+RESULT_NAME="SPACE_MERGED_MIX_SD/rem_FLUX/d3_CLIP/rem"
 
 # SD_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/SD_REM_model_iters_110000_20260419_145110.pth"
 # FLUX_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/FLUX_REM_model_iters_110000_20260420_101642.pth"
 # CLIP_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/CLIP_REM_model_iters_85000_20260421_001237.pth"
 
-SD_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/SD-DDA.pth"
-FLUX_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/FLUX-DDA.pth"
-CLIP_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/CLIP.pth"
+# SD_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/SD-DDA.pth"
+# FLUX_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/FLUX-DDA.pth"
+# CLIP_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov2/CLIP.pth"
+
+SD_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/SD_REM_model_iters_110000_20260419_145110.pth"
+FLUX_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_dinov3/FLUX.pth"
+CLIP_CKPT="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE/best_REM_codex/CLIP_REM_model_iters_85000_20260421_001237.pth"
 
 SD_THRESHOLD=0.5
 FLUX_THRESHOLD=0.98
 CLIP_THRESHOLD=0.5
 
-# SD_ARCH="DINOv3-LoRA:dinov3_vith16plus"
-# FLUX_ARCH="DINOv3-LoRA:dinov3_vith16plus"
-# CLIP_ARCH="CLIP-LoRA:ViT-L/14"
-
-SD_ARCH="DINOv2-LoRA:dinov2_vitl14"
-FLUX_ARCH="DINOv2-LoRA:dinov2_vitl14"
+SD_ARCH="DINOv3-LoRA:dinov3_vith16plus"
+FLUX_ARCH="DINOv3-LoRA:dinov3_vith16plus"
 CLIP_ARCH="CLIP-LoRA:ViT-L/14"
 
+# SD_ARCH="DINOv2-LoRA:dinov2_vitl14"
+# FLUX_ARCH="DINOv2-LoRA:dinov2_vitl14"
+# CLIP_ARCH="CLIP-LoRA:ViT-L/14"
+
 FLUX_CROP_SIZE=224
-SD_CROP_SIZE=336
+SD_CROP_SIZE=224
 CLIP_CROP_SIZE=224
 
-# SD_LORA_RANK=16
-# FLUX_LORA_RANK=16
-# CLIP_LORA_RANK=16
+SD_LORA_RANK=16
+FLUX_LORA_RANK=16
+CLIP_LORA_RANK=16
+
+SD_LORA_ALPHA=32
+FLUX_LORA_ALPHA=32
+CLIP_LORA_ALPHA=32
+
+# SD_LORA_RANK=8
+# FLUX_LORA_RANK=8
+# CLIP_LORA_RANK=8
 #
-# SD_LORA_ALPHA=32
-# FLUX_LORA_ALPHA=32
-# CLIP_LORA_ALPHA=32
-
-SD_LORA_RANK=8
-FLUX_LORA_RANK=8
-CLIP_LORA_RANK=8
-
-SD_LORA_ALPHA=1
-FLUX_LORA_ALPHA=1
-CLIP_LORA_ALPHA=1
+# SD_LORA_ALPHA=1
+# FLUX_LORA_ALPHA=1
+# CLIP_LORA_ALPHA=1
 
 SD_USE_IS_RESIZE=false
 FLUX_USE_IS_RESIZE=false
@@ -79,7 +83,7 @@ while getopts ":s:f:c:r:g:t:m:" opt; do
   esac
 done
 
-RESULT_FOLDER="/root/autodl-tmp/codes/SPACE_merged/result/SPACE_merged/${RESULT_NAME}_${RUN_TIMESTAMP}"
+RESULT_FOLDER="/root/autodl-tmp/codes/SPACE/result/SPACE_merged/${RESULT_NAME}_${RUN_TIMESTAMP}"
 mkdir -p "$RESULT_FOLDER"
 
 OPT_FLAGS=""

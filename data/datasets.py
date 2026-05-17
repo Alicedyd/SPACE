@@ -111,7 +111,7 @@ def create_single_train_transforms(
         resize_func = transforms.Resize((size, size))
 
     transform_list = [
-        RandomJPEGCompression(quality_lower=50, quality_upper=100, p=1.0),
+        RandomJPEGCompression(quality_lower=50, quality_upper=100, p=0.8),
         # 调整大小
         resize_func,
         # 转为张量

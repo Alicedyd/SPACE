@@ -27,11 +27,11 @@ P_FREQMIX=0.0
 R_FREQMIX=0.8
 METH_FREQMIX="uniform"
 QUALITY_JSON="/root/autodl-tmp/codes/DDA/util_files/MSCOCO_train2017.json"
-EXP_ADD="DDA_REM"
+EXP_ADD="DDA_D3_P_JPEG_0.8"
 CHECKPOINTS_DIR="/root/autodl-tmp/codes/ckpt/checkpoints_SPACE"
 USE_CONTRASTIVE=true
 USE_FOCAL_LOSS=false
-USE_RANDOMSCALE=true
+USE_RANDOMSCALE=false
 GPU_ID=0
 MIX_COLOR_SPACE="RGB"
 ACCUM_STEPS=16
@@ -40,15 +40,15 @@ RUN_TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 
 while getopts ":g:c:a:n:t:" opt; do
   case $opt in
-    g) GPU_ID="$OPTARG" ;;
-    c) MIX_COLOR_SPACE="$OPTARG" ;;
-    a) ACCUM_STEPS="$OPTARG" ;;
-    n) EXP_SUFFIX="$OPTARG" ;;
-    t) RUN_TIMESTAMP="$OPTARG" ;;
-    \?)
-      echo "Usage: $0 [-g GPU_ID] [-c MIX_COLOR_SPACE] [-a ACCUM_STEPS] [-n EXP_SUFFIX] [-t RUN_TIMESTAMP]"
-      exit 1
-      ;;
+  g) GPU_ID="$OPTARG" ;;
+  c) MIX_COLOR_SPACE="$OPTARG" ;;
+  a) ACCUM_STEPS="$OPTARG" ;;
+  n) EXP_SUFFIX="$OPTARG" ;;
+  t) RUN_TIMESTAMP="$OPTARG" ;;
+  \?)
+    echo "Usage: $0 [-g GPU_ID] [-c MIX_COLOR_SPACE] [-a ACCUM_STEPS] [-n EXP_SUFFIX] [-t RUN_TIMESTAMP]"
+    exit 1
+    ;;
   esac
 done
 
